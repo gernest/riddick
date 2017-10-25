@@ -2,9 +2,16 @@ package riddick
 
 import "testing"
 import "os"
+import "fmt"
 
+// fixture/SampleDSStore
+// two files
+// => foo.txt
+// => bar.txt
+// One empty directory
+// => nothing
 func TestAllocator_header(t *testing.T) {
-	f, err := os.Open("fixture/Test_DS_Store")
+	f, err := os.Open("fixture/SampleDSStore")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +34,7 @@ func TestAllocator_header(t *testing.T) {
 }
 
 func TestAllocator(t *testing.T) {
-	f, err := os.Open("fixture/Test_DS_Store")
+	f, err := os.Open("fixture/SampleDSStore")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,10 +44,18 @@ func TestAllocator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	k := a.toc["DSDB"]
 	if k != 1 {
 		t.Errorf("expected 1 got %d", k)
 	}
 
+	b, err := a.GetBlock(2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := b.entry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(*e)
 }

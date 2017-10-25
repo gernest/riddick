@@ -3,87 +3,9 @@ package riddick
 import (
 	"encoding/binary"
 	"errors"
-	"io"
+	"fmt"
 	"os"
 )
-
-type block struct {
-	a            *allocator
-	offset, size uint32
-	pos          int
-	data         []byte
-	dirty        bool
-}
-
-func newBlock(a *allocator, offset uint32, size uint32) (*block, error) {
-	v, err := a.read(int64(offset), int(size))
-	if err != nil {
-		return nil, err
-	}
-	return &block{
-		a:    a,
-		size: size,
-		data: v,
-	}, nil
-}
-
-func (b *block) readUint32() (uint32, error) {
-	var v uint32
-	err := binary.Read(b, binary.BigEndian, &v)
-	if err != nil {
-		return 0, err
-	}
-	return v, nil
-}
-
-func (b *block) ReadByte() (byte, error) {
-	if b.pos >= len(b.data) {
-		return 0, io.EOF
-	}
-	o := b.data[b.pos]
-	b.pos++
-	return o, nil
-}
-
-func (b *block) Read(v []byte) (int, error) {
-	if b.pos >= len(b.data) {
-		return 0, io.EOF
-	}
-	n := copy(v, b.data[b.pos:])
-	b.pos += n
-	return n, nil
-}
-
-func (b *block) uint32Slice(size int) ([]uint32, error) {
-	a := make([]uint32, size)
-	err := binary.Read(b, binary.BigEndian, a)
-	if err != nil {
-		return nil, err
-	}
-	return a, nil
-}
-
-func (b *block) readByte() (byte, error) {
-	var v byte
-	err := binary.Read(b, binary.BigEndian, &v)
-	if err != nil {
-		return 0, err
-	}
-	return v, nil
-}
-
-func (b *block) readBuf(length int) (buf []byte, err error) {
-	buf = make([]byte, length)
-	_, err = b.Read(buf)
-	if err != nil {
-		return nil, err
-	}
-	return buf, nil
-}
-
-func (b *block) skip(i int) {
-	b.pos += i
-}
 
 type allocator struct {
 	file     *os.File
@@ -272,4 +194,26 @@ func (a *allocator) readFreeList() error {
 		}
 	}
 	return nil
+}
+
+func (a *allocator) GetBlock(bid uint32) (*block, error) {
+	if len(a.offsets) <= int(bid) {
+		return nil, errors.New("Cannot find key in Offset-Table")
+	}
+	addr := a.offsets[bid]
+	offset := int(addr) & ^0x1f
+	size := 1 << (uint(addr) & 0x1f)
+	fmt.Println(offset, "  ", size)
+	block, err := newBlock(a, uint32(offset), uint32(size)) ///+4??
+	if err != nil {
+		return nil, errors.New("Cannot create/read block")
+	}
+	return block, nil
+}
+
+type entry struct {
+	filename string
+	code     string
+	typeCode string
+	value    interface{}
 }
