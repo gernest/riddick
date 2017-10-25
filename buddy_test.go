@@ -28,7 +28,7 @@ func TestAllocator_header(t *testing.T) {
 	if s != 2048 {
 		t.Errorf("expected %d got %d", 2048, s)
 	}
-	if o != 4096 {
+	if o != 2048 {
 		t.Errorf("expected %d got %d", 2048, o)
 	}
 }
