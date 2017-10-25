@@ -11,7 +11,7 @@ import "fmt"
 // One empty directory
 // => nothing
 func TestAllocator_header(t *testing.T) {
-	f, err := os.Open("fixture/SampleDSStore")
+	f, err := os.Open("fixture/Test_DS_Store")
 	if err != nil {
 		t.Fatal(err)
 	}
