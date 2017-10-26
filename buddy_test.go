@@ -2,7 +2,7 @@ package riddick
 
 import "testing"
 import "os"
-import "fmt"
+import "reflect"
 
 // fixture/SampleDSStore
 // two files
@@ -28,13 +28,13 @@ func TestAllocator_header(t *testing.T) {
 	if s != 2048 {
 		t.Errorf("expected %d got %d", 2048, s)
 	}
-	if o != 2048 {
-		t.Errorf("expected %d got %d", 2048, o)
+	if o != 4096 {
+		t.Errorf("expected %d got %d", 4096, o)
 	}
 }
 
 func TestAllocator(t *testing.T) {
-	f, err := os.Open("fixture/SampleDSStore")
+	f, err := os.Open("fixture/Test_DS_Store")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,14 +48,30 @@ func TestAllocator(t *testing.T) {
 	if k != 1 {
 		t.Errorf("expected 1 got %d", k)
 	}
+	o := []uint32{4107, 69, 135}
+	if !reflect.DeepEqual(o, a.offsets) {
+		t.Errorf("expected %v got %v", o, a.offsets)
+	}
+}
+func TestAllocator_Entries(t *testing.T) {
+	f, err := os.Open("fixture/SampleDSStore")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
 
-	b, err := a.GetBlock(2)
+	a, err := newAllocator(f)
 	if err != nil {
 		t.Fatal(err)
 	}
-	e, err := b.entry()
+	b, err := a.GetBlock(1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(*e)
+	if b.offset != 64 {
+		t.Errorf("expected %d got %d", 64, b.offset)
+	}
+	if b.size != 32 {
+		t.Errorf("expected %d tot %d", 32, b.size)
+	}
 }

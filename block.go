@@ -23,9 +23,10 @@ func newBlock(a *allocator, offset uint32, size uint32) (*block, error) {
 		return nil, err
 	}
 	return &block{
-		a:    a,
-		size: size,
-		data: v,
+		a:      a,
+		offset: offset,
+		size:   size,
+		data:   v,
 	}, nil
 }
 

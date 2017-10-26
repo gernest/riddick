@@ -3,7 +3,6 @@ package riddick
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"os"
 )
 
@@ -203,7 +202,6 @@ func (a *allocator) GetBlock(bid uint32) (*block, error) {
 	addr := a.offsets[bid]
 	offset := int(addr) & ^0x1f
 	size := 1 << (uint(addr) & 0x1f)
-	fmt.Println(offset, "  ", size)
 	block, err := newBlock(a, uint32(offset), uint32(size)) ///+4??
 	if err != nil {
 		return nil, errors.New("Cannot create/read block")
@@ -216,4 +214,52 @@ type entry struct {
 	code     string
 	typeCode string
 	value    interface{}
+}
+
+func (a *allocator) traverse(block uint32, f func(*entry) error) error {
+	node, err := a.GetBlock(block)
+	if err != nil {
+		return err
+	}
+	nextPtr, err := node.readUint32()
+	if err != nil {
+		return err
+	}
+	count, err := node.readUint32()
+	if err != nil {
+		return err
+	}
+	if nextPtr > 0 {
+		//This may be broken
+		for i := 0; i < int(count); i++ {
+			next, err := node.readUint32()
+			if err != nil {
+				return err
+			}
+			err = a.traverse(next, f)
+			if err != nil {
+				return err
+			}
+
+			e, err := node.entry()
+			if err != nil {
+				return err
+			}
+			if err = f(e); err != nil {
+				return err
+			}
+		}
+		err := a.traverse(nextPtr, f)
+		if err != nil {
+			return err
+		}
+	} else {
+		for i := 0; i < int(count); i++ {
+			e, err := node.entry()
+			if err = f(e); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
