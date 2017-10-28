@@ -1,8 +1,11 @@
 package riddick
 
-import "testing"
-import "os"
-import "reflect"
+import (
+	"fmt"
+	"os"
+	"reflect"
+	"testing"
+)
 
 // fixture/SampleDSStore
 // two files
@@ -73,5 +76,18 @@ func TestAllocator_Entries(t *testing.T) {
 	}
 	if b.size != 32 {
 		t.Errorf("expected %d tot %d", 32, b.size)
+	}
+	err = a.traverse(1, func(e *entry) error {
+		if e.typeCode == "dutc" {
+			tim, err := e.timestamp()
+			if err != nil {
+				return err
+			}
+			fmt.Println(tim)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

@@ -2,6 +2,7 @@ package riddick
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 	"reflect"
 	"unicode/utf16"
@@ -90,25 +91,60 @@ func (b *block) skip(i int) {
 
 func (b *block) entry() (*entry, error) {
 	e := &entry{}
+	if err := b.readToEntry(e); err != nil {
+		return nil, err
+	}
+	return e, nil
+}
+
+func (b *block) readToEntry(e *entry) error {
 	n, err := b.filaname()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	e.filename = n
 	code, err := b.code()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	e.code = code
 	typeCode, err := b.typeCode()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	e.typeCode = typeCode
-	switch typeCode {
 
+	bytesToSkip := -1
+
+	switch typeCode {
+	case "bool":
+		bytesToSkip = 1
+	case "type", "long", "shor":
+		bytesToSkip = 4
+	case "comp", "dutc":
+		bytesToSkip = 8
+	case "blob":
+		blen, err := b.readUint32()
+		if err != nil {
+			return err
+		}
+		bytesToSkip = int(blen)
+	case "ustr":
+		blen, err := b.readUint32()
+		if err != nil {
+			return err
+		}
+		bytesToSkip = int(2 * blen)
 	}
-	return e, nil
+	if bytesToSkip <= 0 {
+		return errors.New("Unknown file format")
+	}
+	o, err := b.readBuf(bytesToSkip)
+	if err != nil {
+		return err
+	}
+	e.data = o
+	return nil
 }
 
 func (b *block) filaname() (string, error) {

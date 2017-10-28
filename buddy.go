@@ -3,6 +3,7 @@ package riddick
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"os"
 )
 
@@ -209,13 +210,6 @@ func (a *allocator) GetBlock(bid uint32) (*block, error) {
 	return block, nil
 }
 
-type entry struct {
-	filename string
-	code     string
-	typeCode string
-	value    interface{}
-}
-
 func (a *allocator) traverse(block uint32, f func(*entry) error) error {
 	node, err := a.GetBlock(block)
 	if err != nil {
@@ -259,6 +253,7 @@ func (a *allocator) traverse(block uint32, f func(*entry) error) error {
 			if err = f(e); err != nil {
 				return err
 			}
+			fmt.Println(*e)
 		}
 	}
 	return nil
