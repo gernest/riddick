@@ -1,7 +1,6 @@
 package riddick
 
 import (
-	"fmt"
 	"os"
 	"testing"
 )
@@ -23,5 +22,12 @@ func TestStore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println(s)
+	v, err := s.find("foo.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	i := v[0]
+	if i.filename != "foo.txt" {
+		t.Errorf("expected foo.txt got %s", i.filename)
+	}
 }
