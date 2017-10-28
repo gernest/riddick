@@ -1,11 +1,16 @@
 package riddick
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
 	"time"
+
+	"github.com/mattetti/cocoa"
+
+	"github.com/DHowett/go-plist"
 )
 
 type entry struct {
@@ -49,4 +54,25 @@ func (e *entry) timestamp() (time.Time, error) {
 		return ts.Add(-diff), nil
 	}
 	return time.Time{}, nil
+}
+
+func (e *entry) plist() (map[string]interface{}, int, error) {
+	switch e.code {
+	case "bwsp", "lsvp", "lsvP", "icvp":
+		o := make(map[string]interface{})
+		f, err := plist.Unmarshal(e.data, &o)
+		if err != nil {
+			return nil, 0, err
+		}
+		return o, f, nil
+	default:
+		return nil, 0, fmt.Errorf("%s is not a plist entry", e.code)
+	}
+}
+
+func (e *entry) bookmark() (*cocoa.BookmarkData, error) {
+	if e.code != "pBBk" {
+		return nil, fmt.Errorf("reading %s from %s", "pBBk", e.code)
+	}
+	return cocoa.AliasFromReader(bytes.NewReader(e.data))
 }
