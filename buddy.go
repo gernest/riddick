@@ -3,7 +3,6 @@ package riddick
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"os"
 )
 
@@ -223,6 +222,7 @@ func (a *allocator) traverse(block uint32, f func(*entry) error) error {
 	if err != nil {
 		return err
 	}
+	e := &entry{}
 	if nextPtr > 0 {
 		//This may be broken
 		for i := 0; i < int(count); i++ {
@@ -234,9 +234,7 @@ func (a *allocator) traverse(block uint32, f func(*entry) error) error {
 			if err != nil {
 				return err
 			}
-
-			e, err := node.entry()
-			if err != nil {
+			if err = node.readToEntry(e); err != nil {
 				return err
 			}
 			if err = f(e); err != nil {
@@ -249,11 +247,12 @@ func (a *allocator) traverse(block uint32, f func(*entry) error) error {
 		}
 	} else {
 		for i := 0; i < int(count); i++ {
-			e, err := node.entry()
+			if err = node.readToEntry(e); err != nil {
+				return err
+			}
 			if err = f(e); err != nil {
 				return err
 			}
-			fmt.Println(*e)
 		}
 	}
 	return nil
