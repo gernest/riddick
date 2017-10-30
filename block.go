@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"os"
 	"reflect"
 	"unicode/utf16"
 	"unicode/utf8"
@@ -210,4 +211,27 @@ func utf16be2utf8(utf16be []byte) string {
 		bi += utf8.EncodeRune(buf[bi:], r)
 	}
 	return string(buf)
+}
+
+func (b *block) seek(pos int, whence int) error {
+	switch whence {
+	case os.SEEK_CUR:
+		pos += b.pos
+	case os.SEEK_END:
+		pos = int(b.size) - pos
+	}
+	if pos < 0 || pos > int(b.size) {
+		return errors.New("seek out of range")
+	}
+	b.pos = pos
+	return nil
+}
+
+func (b *block) Write(data []byte) (int, error) {
+	if b.pos+len(data) > int(b.size) {
+		return 0, errors.New("trying to write past end of block")
+	}
+	copy(b.data[b.pos:b.pos+len(data)], data)
+	b.pos += len(data)
+	return len(data), nil
 }
