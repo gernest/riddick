@@ -76,3 +76,21 @@ func (e *entry) bookmark() (*cocoa.BookmarkData, error) {
 	}
 	return cocoa.AliasFromReader(bytes.NewReader(e.data))
 }
+
+func (e *entry) len() int {
+	l := 4 + len(e.filename) + 8
+	switch e.typeCode {
+	case "bool":
+		l++
+	case "long", "shor", "type":
+		l += 4
+	case "blob":
+		l += 4 + len(e.data)
+	case "ustr":
+		s := utf16be2utf8(e.data)
+		l += 4 + len(s)
+	case "comp", "dutc":
+		l += 8
+	}
+	return l
+}
