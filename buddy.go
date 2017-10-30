@@ -257,3 +257,11 @@ func (a *allocator) traverse(block uint32, f func(*entry) error) error {
 	}
 	return nil
 }
+
+func (a *allocator) write(oofset int, data []byte) (int, error) {
+	_, err := a.file.Seek(int64(oofset+4), os.SEEK_SET)
+	if err != nil {
+		return 0, err
+	}
+	return a.file.Write(data)
+}

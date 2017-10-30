@@ -233,5 +233,16 @@ func (b *block) Write(data []byte) (int, error) {
 	}
 	copy(b.data[b.pos:b.pos+len(data)], data)
 	b.pos += len(data)
+	b.dirty = true
 	return len(data), nil
+}
+
+func (b *block) flush() error {
+	if b.dirty {
+		_, err := b.a.write(int(b.offset), b.data)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
