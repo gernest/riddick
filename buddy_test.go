@@ -77,6 +77,36 @@ func TestAllocator_Entries(t *testing.T) {
 		t.Errorf("expected %d tot %d", 32, b.size)
 	}
 	err = a.traverse(1, func(e *entry) error {
+		switch e.filename {
+		case "bar.txt":
+			switch e.code {
+			case "Iloc":
+				x, y, err := e.decodeIloc()
+				if err != nil {
+					return err
+				}
+				if x != 59 {
+					t.Errorf("expected 59 got %d", x)
+				}
+				if y != 40 {
+					t.Errorf("expected 40 got %d", y)
+				}
+			}
+		case "foo.txt":
+			switch e.code {
+			case "Iloc":
+				x, y, err := e.decodeIloc()
+				if err != nil {
+					return err
+				}
+				if x != 169 {
+					t.Errorf("expected 169 got %d", x)
+				}
+				if y != 40 {
+					t.Errorf("expected 40 got %d", y)
+				}
+			}
+		}
 		return nil
 	})
 	if err != nil {

@@ -94,3 +94,17 @@ func (e *entry) len() int {
 	}
 	return l
 }
+
+func (e *entry) decodeIloc() (uint32, uint32, error) {
+	r := bytes.NewReader(e.data)
+	var x, y uint32
+	err := binary.Read(r, binary.BigEndian, &x)
+	if err != nil {
+		return 0, 0, err
+	}
+	err = binary.Read(r, binary.BigEndian, &y)
+	if err != nil {
+		return 0, 0, err
+	}
+	return x, y, nil
+}
