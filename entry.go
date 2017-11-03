@@ -119,3 +119,34 @@ func (e *entry) decodeIloc() (uint32, uint32, error) {
 	}
 	return x, y, nil
 }
+
+func (e *entry) Encode() ([]byte, error) {
+	var o bytes.Buffer
+	name, err := utf16beEnc.String(e.filename)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(&o, binary.BigEndian, uint32(len(name)))
+	if err != nil {
+		return nil, err
+	}
+	_, err = o.WriteString(name)
+	if err != nil {
+		return nil, err
+	}
+	o.WriteString(e.code)
+	o.WriteString(e.typeCode)
+	switch e.typeCode {
+	case "bool", "long", "shor", "comp", "dutc":
+		o.Write(e.data)
+	case "blob", "ustr":
+		err = binary.Write(&o, binary.BigEndian, uint32(len(e.data)))
+		if err != nil {
+			return nil, err
+		}
+		o.Write(e.data)
+	default:
+		return nil, fmt.Errorf("unkown type code %s", e.typeCode)
+	}
+	return o.Bytes(), nil
+}
