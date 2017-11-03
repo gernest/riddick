@@ -5,10 +5,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"reflect"
-	"unicode/utf16"
-	"unicode/utf8"
-	"unsafe"
 )
 
 type block struct {
@@ -157,8 +153,11 @@ func (b *block) filaname() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	n := utf16be2utf8(buf)
-	return n, nil
+	n, err := utf16beDec.Bytes(buf)
+	if err != nil {
+		return "", err
+	}
+	return string(n), nil
 }
 
 func (b *block) string(size int) (string, error) {
@@ -175,42 +174,6 @@ func (b *block) code() (string, error) {
 
 func (b *block) typeCode() (string, error) {
 	return b.string(4)
-}
-
-func utf16be2utf8(utf16be []byte) string {
-	//Taken from http://play.golang.org/p/xtG1e9iqA1
-	n := len(utf16be)
-	// Convert to []uint16
-	// hop through unsafe to skip any actual allocation/copying
-	header := *(*reflect.SliceHeader)(unsafe.Pointer(&utf16be))
-	header.Len /= 2
-	shorts := *(*[]uint16)(unsafe.Pointer(&header))
-	// shorts may need byte-swapping
-	for i := 0; i < n; i += 2 {
-		shorts[i/2] = (uint16(utf16be[i]) << 8) | uint16(utf16be[i+1])
-	}
-
-	// Convert to []byte
-	count := 0
-	for i := 0; i < len(shorts); i++ {
-		r := rune(shorts[i])
-		if utf16.IsSurrogate(r) {
-			i++
-			r = utf16.DecodeRune(r, rune(shorts[i]))
-		}
-		count += utf8.RuneLen(r)
-	}
-	buf := make([]byte, count)
-	bi := 0
-	for i := 0; i < len(shorts); i++ {
-		r := rune(shorts[i])
-		if utf16.IsSurrogate(r) {
-			i++
-			r = utf16.DecodeRune(r, rune(shorts[i]))
-		}
-		bi += utf8.EncodeRune(buf[bi:], r)
-	}
-	return string(buf)
 }
 
 func (b *block) seek(pos int, whence int) error {

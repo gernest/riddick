@@ -11,7 +11,12 @@ import (
 	"github.com/mattetti/cocoa"
 
 	"github.com/DHowett/go-plist"
+	"golang.org/x/text/encoding/unicode"
 )
+
+var utf16be = unicode.UTF16(unicode.BigEndian, unicode.UseBOM)
+var utf16beDec = utf16be.NewDecoder()
+var utf16beEnc = utf16be.NewEncoder()
 
 type entry struct {
 	filename string
@@ -77,7 +82,7 @@ func (e *entry) bookmark() (*cocoa.BookmarkData, error) {
 	return cocoa.AliasFromReader(bytes.NewReader(e.data))
 }
 
-func (e *entry) len() int {
+func (e *entry) len() (int, error) {
 	l := 4 + len(e.filename) + 8
 	switch e.typeCode {
 	case "bool":
@@ -87,15 +92,21 @@ func (e *entry) len() int {
 	case "blob":
 		l += 4 + len(e.data)
 	case "ustr":
-		s := utf16be2utf8(e.data)
+		s, err := utf16beDec.Bytes(e.data)
+		if err != nil {
+			return 0, err
+		}
 		l += 4 + len(s)
 	case "comp", "dutc":
 		l += 8
 	}
-	return l
+	return l, nil
 }
 
 func (e *entry) decodeIloc() (uint32, uint32, error) {
+	if e.code != "Iloc" {
+		return 0, 0, fmt.Errorf("reading %s from %s", "Iloc", e.code)
+	}
 	r := bytes.NewReader(e.data)
 	var x, y uint32
 	err := binary.Read(r, binary.BigEndian, &x)
