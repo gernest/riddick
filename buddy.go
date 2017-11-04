@@ -265,3 +265,22 @@ func (a *allocator) write(oofset int, data []byte) (int, error) {
 	}
 	return a.file.Write(data)
 }
+
+//The number of bytes required by root block.
+func (a *allocator) rootBlockSize() int {
+	// offsets
+	size := 8
+	size += 4 * ((len(a.offsets) + 255) &^ 255)
+
+	// toc
+	size += 4
+	for k := range a.toc {
+		size += 5 + len(k)
+	}
+
+	//freelist
+	for _, k := range a.freeList {
+		size += 4 + 4*len(k)
+	}
+	return size
+}
