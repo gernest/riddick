@@ -1,9 +1,12 @@
 package riddick
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
+	"io"
 	"os"
+	"sort"
 )
 
 type allocator struct {
@@ -283,4 +286,68 @@ func (a *allocator) rootBlockSize() int {
 		size += 4 + 4*len(k)
 	}
 	return size
+}
+
+func (a *allocator) writeRootBlockInto(b *block) (int64, error) {
+	var buf bytes.Buffer
+	err := binary.Write(&buf, binary.BigEndian, uint32(len(a.offsets)))
+	if err != nil {
+		return 0, err
+	}
+
+	err = binary.Write(&buf, binary.BigEndian, a.unkown2)
+	if err != nil {
+		return 0, err
+	}
+	count := len(a.offsets)
+	var o []uint32
+	c := (int(count) + 255) & ^255
+	for c != 0 {
+		no := make([]uint32, 256)
+		o = append(o, no...)
+		c -= 256
+	}
+	for k, v := range a.offsets {
+		o[k] = v
+	}
+	err = binary.Write(&buf, binary.BigEndian, o)
+	if err != nil {
+		return 0, err
+	}
+
+	var keys []string
+
+	for k := range a.toc {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+	err = binary.Write(&buf, binary.BigEndian, len(keys))
+	if err != nil {
+		return 0, err
+	}
+
+	for _, k := range keys {
+		err = binary.Write(&buf, binary.BigEndian, byte(len(k)))
+		if err != nil {
+			return 0, err
+		}
+		buf.WriteString(k)
+		err = binary.Write(&buf, binary.BigEndian, a.toc[k])
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	for _, v := range a.freeList {
+		err = binary.Write(&buf, binary.BigEndian, len(v))
+		if err != nil {
+			return 0, err
+		}
+		err = binary.Write(&buf, binary.BigEndian, v)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return io.Copy(b, &buf)
 }
